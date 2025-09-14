@@ -8,7 +8,7 @@ App(
     stack_size=2 * 1024,
     fap_category="Games",
     # Optional values
-    fap_version="0.1.0",
+    fap_version="0.2.0",
     fap_icon="digital_kaleidoscope.png",  # 10x10 1-bit PNG
     fap_description="A Digital Kaleidoscope Visualiser",
     fap_author="J. Randall jr3d.co.uk",

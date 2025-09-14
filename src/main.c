@@ -119,18 +119,96 @@ static void render_style3(Canvas* canvas) {
 }
 
 //--------------------------------------------------------------------------------
+// NEW-STYLE4: Spiral swirl
+//--------------------------------------------------------------------------------
+static void render_style4(Canvas* canvas) {
+    canvas_clear(canvas);
+    int cx = W/2, cy = H/2;
+
+    for(int y = 0; y < H; y++) {
+        for(int x = 0; x < W; x++) {
+            float dx = (float)(x - cx);
+            float dy = (float)(y - cy);
+            float r = sqrtf(dx*dx + dy*dy);
+            float angle = atan2f(dy, dx);
+
+            float val = sinf(r*0.3f + angle*6.0f - frame*0.1f);
+            if(val > 0.8f) canvas_draw_dot(canvas, x, y);
+        }
+    }
+}
+
+//--------------------------------------------------------------------------------
+// NEW-STYLE5: Animated checkerboard wave
+//--------------------------------------------------------------------------------
+static void render_style5(Canvas* canvas) {
+    canvas_clear(canvas);
+
+    for(int y = 0; y < H; y++) {
+        for(int x = 0; x < W; x++) {
+            float nx = x * 0.1f + frame*0.05f;
+            float ny = y * 0.1f;
+
+            int checker = (((int)floorf(nx) + (int)floorf(ny)) & 1);
+            if(checker) {
+                float wave = sinf(nx*1.5f) * cosf(ny*1.5f);
+                if(wave > 0.3f) canvas_draw_dot(canvas, x, y);
+            }
+        }
+    }
+}
+
+//--------------------------------------------------------------------------------
+// NEW-STYLE6: Pulsating radial sunburst
+//--------------------------------------------------------------------------------
+static void render_style6(Canvas* canvas) {
+    canvas_clear(canvas);
+    int cx = W/2, cy = H/2;
+
+    // Rays count depends on density (between 6 and 24)
+    int rays = 6 + (dot_threshold / 5); 
+    float speed = frame * 0.08f;
+
+    for(int y = 0; y < H; y++) {
+        for(int x = 0; x < W; x++) {
+            float dx = (float)(x - cx);
+            float dy = (float)(y - cy);
+            float r = sqrtf(dx*dx + dy*dy);
+            float angle = atan2f(dy, dx);
+
+            // Angular ray pattern
+            float ray_val = cosf(angle * rays + speed);
+
+            // Radial pulsation
+            float ring_val = sinf(r * 0.25f - speed * 0.7f);
+
+            // Combine
+            if(ray_val * ring_val > 0.65f) {
+                canvas_draw_dot(canvas, x, y);
+            }
+        }
+    }
+}
+
+
+//--------------------------------------------------------------------------------
 // General render switcher (reordered)
 //--------------------------------------------------------------------------------
 static void render_pattern(Canvas* canvas) {
     frame++;
     switch(style) {
-        case 0: render_style2(canvas); break; // now “Vis 1” uses old-style2
-        case 1: render_style1(canvas); break; // “Vis 2” unchanged
-        case 2: render_style3(canvas); break; // now “Vis 3” uses old-style3
-        case 3: render_style0(canvas); break; // now “Vis 4” uses old-style0
+        case 0: render_style2(canvas); break; // rotated star
+        case 1: render_style1(canvas); break; // arcs
+        case 2: render_style3(canvas); break; // noise
+        case 3: render_style0(canvas); break; // mirrored dots
+        case 4: render_style4(canvas); break; // spiral swirl
+        case 5: render_style5(canvas); break; // checkerboard
+        case 6: render_style6(canvas); break; // sunburst
         default: render_style0(canvas); break;
     }
 }
+
+
 
 // ViewPort draw callback (ctx unused here)
 static void view_callback(Canvas* canvas, void* ctx) {
@@ -141,29 +219,35 @@ static void view_callback(Canvas* canvas, void* ctx) {
 // ViewPort input callback (arrow keys + Back, plus immediate redraw)
 static void input_callback(InputEvent* event, void* ctx) {
     ViewPort* vp = ctx;
-    if(event->type == InputTypeShort) {
-        switch(event->key) {
-            case InputKeyBack:
-                app_running = false;
-                break;
-            case InputKeyLeft:
-                // Cycle styles 0→3, 1→0, 2→1, 3→2
-                style = (style == 0) ? 3 : (style - 1);
-                break;
-            case InputKeyRight:
-                // Cycle styles 0→1, 1→2, 2→3, 3→0
-                style = (style == 3) ? 0 : (style + 1);
-                break;
-            case InputKeyUp:
-                dot_threshold = clamp_u8(dot_threshold + 10, 0, 100);
-                break;
-            case InputKeyDown:
-                dot_threshold = (dot_threshold < 10) ? 0 : (dot_threshold - 10);
-                break;
-            default:
-                break;
-        }
-        // Force an immediate redraw when the user changes style or density
+    if(event->type != InputTypeShort) return;
+
+    bool do_redraw = false;
+
+    switch(event->key) {
+        case InputKeyBack:
+            app_running = false;
+            return;
+        case InputKeyLeft:
+            style = (style == 0) ? 6 : (style - 1);
+            do_redraw = true;
+            break;
+        case InputKeyRight:
+            style = (style == 6) ? 0 : (style + 1);
+            do_redraw = true;
+            break;
+        case InputKeyUp:
+            dot_threshold = clamp_u8(dot_threshold + 10, 0, 100);
+            do_redraw = true;
+            break;
+        case InputKeyDown:
+            dot_threshold = (dot_threshold < 10) ? 0 : (dot_threshold - 10);
+            do_redraw = true;
+            break;
+        default:
+            break;
+    }
+
+    if(do_redraw) {
         view_port_update(vp);
     }
 }
